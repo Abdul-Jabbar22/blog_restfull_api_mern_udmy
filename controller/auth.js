@@ -97,5 +97,122 @@ const verifyCode = async (req, res, next) => {
     next(error);
   }
 };
+const verifyUser = async (req, res, next) => {
+  try {
+    const { email, code } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      res.code = 400;
+      throw new Error("user not found");
+    }
+    if (user.verificationCode !== code) {
+      res.code = 400;
+      throw new Error("Invalid code ");
+    }
+    user.isVerified = true;
+    user.verificationCode = null;
+    await user.save();
 
-module.exports = { signup, signin, verifyCode };
+    res
+      .status(200)
+      .json({ code: 200, status: true, message: "user verified successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+const forgotPasswordCode = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      res.code = 404;
+      throw new Error("user not found");
+    }
+    const code = generateCode(6);
+    user.forgotPasswordCode = code;
+    await user.save();
+    await sendEmail({
+      emailTo: user.email,
+      subject: "Forget password code",
+      code,
+      content: "Change your password",
+    });
+    res.status(200).json({
+      code: 200,
+      status: true,
+      message: "Forgot password code send successfully",
+    });
+  } catch (error) {
+    next();
+  }
+};
+const recoverPassword = async (req, res, next) => {
+  try {
+    const { email, code, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      res.status(400).json({ message: "User not found" });
+      return;
+    }
+    if (user.forgotPasswordCode !== code) {
+      res.status(400).json({ message: "Invalid code" });
+      return;
+    }
+    const hashedPassword = await hashPassword(password); // Use `hashedPassword` instead of redeclaring `hashPassword`
+    user.password = hashedPassword;
+    user.forgotPasswordCode = null;
+    await user.save(); // Use `save()` instead of `send()`
+
+    res.status(200).json({
+      code: 200,
+      status: true,
+      message: "Password recovered successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+const changePassword = async (req, res, next) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const { _id } = req.user;
+
+    const user = await User.findById(_id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const match = await comparePassword(oldPassword, user.password);
+    if (!match) {
+      return res.status(400).json({ message: "Old Password doesn't match" });
+    }
+
+    if (oldPassword === newPassword) {
+      return res
+        .status(400)
+        .json({ message: "You are providing the old password" });
+    }
+
+    const hashedPassword = await hashPassword(newPassword); // Use `hashPassword` as a function
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({
+      code: 200,
+      status: true,
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+module.exports = {
+  signup,
+  signin,
+  verifyCode,
+  verifyUser,
+  forgotPasswordCode,
+  recoverPassword,
+  changePassword,
+};

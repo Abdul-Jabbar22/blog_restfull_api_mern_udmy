@@ -28,5 +28,42 @@ const emailValidator = [
     .notEmpty()
     .withMessage("Email is required"),
 ];
+const verifyUserValidator = [
+  check("email")
+    .isEmail()
+    .withMessage("Invalid email")
+    .notEmpty()
+    .withMessage("Email is required"),
 
-module.exports = { singupValidator, signinValidator, emailValidator };
+  check("code").notEmpty().withMessage("Code is required"),
+];
+const recoverPasswordValidator = [
+  check("email")
+    .isEmail()
+    .withMessage("Invalid email")
+    .notEmpty()
+    .withMessage("Email is required"),
+
+  check("code").notEmpty().withMessage("Code is required"),
+
+  check("password")
+    .isLength({ min: 6 })
+    .withMessage("Password should be 6 char long")
+    .notEmpty()
+    .withMessage("Password is required"),
+];
+const changePasswordValidator = [
+  check("oldPassword").notEmpty().withMessage(
+    "Old password is required",
+
+    check("newPaassword").notEmpty().withMessage("New password is required")
+  ),
+];
+module.exports = {
+  singupValidator,
+  signinValidator,
+  emailValidator,
+  verifyUserValidator,
+  recoverPasswordValidator,
+  changePasswordValidator,
+};
