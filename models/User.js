@@ -10,6 +10,7 @@ const userSchema = mongoose.Schema(
     verificationCode: String, // Correct field name to `verificationCode`
     forgotPasswordCode: String,
     isVerified: { type: Boolean, default: false }, // Correct field name to `isVerified`
+    profilePic: { type: mongoose.Types.ObjectId, ref: "file" },
   },
   {
     timestamps: true,

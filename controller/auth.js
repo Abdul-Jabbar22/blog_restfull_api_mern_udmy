@@ -207,6 +207,71 @@ const changePassword = async (req, res, next) => {
     next(error);
   }
 };
+const updateProfile = async (req, res, next) => {
+  try {
+    const { _id } = req.user;
+    const { name, email } = req.body;
+
+    const user = await User.findById(_id).select(
+      "-password -verificationCode -forgotPasswordCode"
+    );
+    if (!user) {
+      res.code = 404;
+      throw new Error("User not found");
+    }
+    if (email) {
+      const isUserExist = await User.findOne({ email });
+      if (
+        isUserExist &&
+        isUserExist === email &&
+        String(user._id) !== Sring(isUserExist._id)
+      ) {
+        res.code = 400;
+        throw new Error("Email already exist");
+      }
+    }
+    user.name = name ? name : user.name;
+    user.email = email ? email : user.email;
+
+    if (email) {
+      user.isVerified = false;
+    }
+    await user.save();
+    res.status(200).json({
+      code: 200,
+      status: true,
+      message: "user profile updates successfully ",
+      data: { user },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+const currentUser = async (req, res, next) => {
+  try {
+    const { _id } = req.user;
+
+    const user = await User.findById(_id)
+      .select("-password -verificationCode -forgotPasswordCode")
+      .populate("profilePic");
+    if (!user) {
+      const error = new Error("User not found");
+      error.status = 404; // Set the status directly on the error object
+      throw error;
+    }
+
+    res.status(200).json({
+      status: true,
+      message: "Get current user successfully",
+      data: { user },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = currentUser;
+
 module.exports = {
   signup,
   signin,
@@ -215,4 +280,6 @@ module.exports = {
   forgotPasswordCode,
   recoverPassword,
   changePassword,
+  updateProfile,
+  currentUser,
 };
